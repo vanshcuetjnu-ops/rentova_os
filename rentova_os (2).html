@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rentova OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            orange: '#F47B20',       
+                            orangehover: '#E06A1B',  
+                            bg: '#F5F6F7',           
+                            card: '#FFFFFF',         
+                            charcoal: '#1F2937',     
+                            slate: '#64748B',        
+                            border: '#E2E8F0',       
+                            red: '#EF4444',          
+                            green: '#10B981',        
+                            amber: '#F59E0B'         
+                        }
+                    },
+                    zIndex: {
+                        'base': '1', 'header': '20', 'sidebar': '30', 'dropdown': '40',
+                        'drawer': '50', 'backdrop': '90', 'modal': '100', 'toast': '110',
+                    },
+                    boxShadow: {
+                        'premium': '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+                        'float': '0 10px 25px -5px rgba(0, 0, 0, 0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body { background-color: #F5F6F7; color: #1F2937; margin: 0; overflow: hidden; overscroll-behavior: none; }
+        .glass-card { background: #FFFFFF; border-radius: 8px; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05); border: 1px solid #E2E8F0; }
+        .input-premium { width: 100%; border: 1px solid #CBD5E1; border-radius: 6px; padding: 10px 12px; background: #FFFFFF; transition: all 0.2s; font-size: 14px; color: #1F2937; }
+        .input-premium:focus { outline: none; border-color: #F47B20; box-shadow: 0 0 0 3px rgba(244, 123, 32, 0.15); }
+        .input-premium:disabled { background: #F1F5F9; color: #94A3B8; cursor: not-allowed; }
+        
+        .btn-primary { background: #F47B20; color: white; border-radius: 6px; padding: 10px 16px; font-weight: 500; font-size: 14px; transition: all 0.2s; border: 1px solid #F47B20; display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+        .btn-primary:hover:not(:disabled) { background: #E06A1B; border-color: #E06A1B; box-shadow: 0 4px 12px rgba(244, 123, 32, 0.2); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .btn-secondary { background: #FFFFFF; color: #1F2937; border-radius: 6px; padding: 10px 16px; font-weight: 500; font-size: 14px; transition: all 0.2s; border: 1px solid #CBD5E1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+        .btn-secondary:hover:not(:disabled) { background: #F8FAFC; border-color: #94A3B8; }
+        
+        .btn-danger { background: #FFFFFF; color: #EF4444; border-radius: 6px; padding: 10px 16px; font-weight: 500; font-size: 14px; transition: all 0.2s; border: 1px solid #FECACA; display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;}
+        .btn-danger:hover:not(:disabled) { background: #FEF2F2; border-color: #F87171; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 6px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
+        .animate-slideUp { animation: slideUp 0.3s ease-out forwards; }
+
+        .hidden { display: none !important; }
+        .toast-enter { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .toast-exit { transform: translateX(-50%) translateY(100px); opacity: 0; }
+        
+        @media (max-width: 767px) {
+            .mobile-bottom-action { position: sticky; bottom: 0; left: 0; right: 0; padding: 16px; background: white; border-top: 1px solid #E2E8F0; z-index: 20; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); }
+        }
+    </style>
+</head>
+<body class="font-sans text-brand-charcoal antialiased selection:bg-brand-orange selection:text-white flex flex-col h-screen w-screen">
+
+    <div id="app-root" class="h-full w-full flex flex-col"></div>
+    <div id="modal-root" class="fixed inset-0 z-modal hidden items-center justify-center p-4 sm:p-6 bg-brand-charcoal/60 backdrop-blur-sm overflow-y-auto"></div>
+    <div id="toast-root" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-toast flex flex-col gap-2 pointer-events-none transition-transform duration-300"></div>
+
+    <template id="tpl-auth">
+        <div class="flex h-full w-full bg-brand-bg animate-fadeIn">
+            <div class="hidden md:flex md:w-1/2 bg-brand-charcoal text-white flex-col justify-center items-center p-12 relative overflow-hidden">
+                <div class="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-brand-orange via-brand-charcoal to-brand-charcoal"></div>
+                <div class="z-10 text-center">
+                    <h1 class="text-5xl font-bold tracking-tight mb-4">Rentova <span class="text-brand-orange">OS</span></h1>
+                    <p class="text-lg text-slate-300 font-light max-w-md mx-auto">Enterprise pricing, supplier intelligence, and marketplace unit economics platform.</p>
+                </div>
+                <div class="absolute bottom-8 left-8 text-xs text-slate-500 font-mono">v5.0.0 Single Page App</div>
+            </div>
+            
+            <div class="w-full md:w-1/2 flex flex-col justify-center items-center p-6 overflow-y-auto">
+                <div class="w-full max-w-md glass-card p-8 shadow-float relative">
+                    <div class="text-center mb-8">
+                        <h2 class="text-2xl font-bold text-brand-charcoal md:hidden mb-2">Rentova OS</h2>
+                        <h3 class="text-xl font-bold text-brand-charcoal" id="auth-title">Sign In</h3>
+                        <p class="text-sm text-brand-slate mt-1" id="auth-subtitle">Access your secure workspace</p>
+                    </div>
+
+                    <div id="auth-alert" class="hidden mb-4 p-3 rounded-md border text-sm flex items-center gap-2"></div>
+
+                    <!-- Login Form -->
+                    <form id="form-login" onsubmit="App.Auth.login(event)" class="space-y-5">
+                        <div>
+                            <label class="block text-xs font-semibold text-brand-slate uppercase tracking-wider mb-1.5">Email or Username</label>
+                            <input type="text" id="login-email" class="input-premium" required>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label class="block text-xs font-semibold text-brand-slate uppercase tracking-wider">Password</label>
+                            </div>
+                            <input type="password" id="login-password" class="input-premium" required>
+                        </div>
+                        <button type="submit" id="btn-login" class="btn-primary w-full py-3 mt-2 text-base">Sign In to OS</button>
+                        <div class="text-center mt-4 text-sm text-brand-slate">
+                            Need access? <a href="#" onclick="App.Auth.toggleMode('signup')" class="text-brand-orange font-semibold hover:underline">Create an account</a>
+                        </div>
+                    </form>
+
+                    <!-- Signup Form -->
+                    <form id="form-signup" onsubmit="App.Auth.signup(event)" class="space-y-4 hidden">
+                        <div><label class="block text-xs font-semibold text-brand-slate uppercase tracking-wider mb-1.5">Full Name</label><input type="text" id="reg-name" class="input-premium" required></div>
+                        <div><label class="block text-xs font-semibold text-brand-slate uppercase tracking-wider mb-1.5">Email</label><input type="email" id="reg-email" class="input-premium" required></div>
+                        <div><label class="block text-xs font-semibold text-brand-slate uppercase tracking-wider mb-1.5">Designation</label><input type="text" id="reg-desig" class="input-premium" required></div>
+                        <div><label class="block text-xs font-semibold text-brand-slate uppercase tracking-wider mb-1.5">Password</label><input type="password" id="reg-pass" class="input-premium" required minlength="6"></div>
+                        <button type="submit" id="btn-signup" class="btn-primary w-full py-3 mt-2 text-base">Register Account</button>
+                        <div class="text-center mt-4 text-sm text-brand-slate">
+                            Already registered? <a href="#" onclick="App.Auth.toggleMode('login')" class="text-brand-orange font-semibold hover:underline">Sign in</a>
+                        </div>
+                        <p class="text-[10px] text-center text-brand-slate mt-4 italic">Note: Self-registered users are granted Super Admin access for this prototype.</p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-app-shell">
+        <div class="flex h-full w-full bg-brand-bg overflow-hidden relative">
+            <div id="mobile-drawer-overlay" class="fixed inset-0 bg-brand-charcoal/50 z-drawer hidden md:hidden" onclick="App.UI.toggleSidebar()"></div>
+            
+            <!-- Sidebar Navigation -->
+            <aside id="app-sidebar" class="fixed md:static inset-y-0 left-0 z-[51] w-64 bg-white border-r border-brand-border flex flex-col transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+                <div class="h-16 flex items-center justify-between px-6 border-b border-brand-border shrink-0">
+                    <span class="text-xl font-bold tracking-tight text-brand-charcoal">Rentova <span class="text-brand-orange font-normal">OS</span></span>
+                    <button onclick="App.UI.toggleSidebar()" class="md:hidden text-brand-slate hover:text-brand-charcoal p-2 -mr-2"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-0.5 custom-scrollbar" id="nav-menu"></nav>
+                <div class="p-4 border-t border-brand-border shrink-0 relative">
+                    <div class="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-slate-50 transition border border-transparent hover:border-brand-border" onclick="App.UI.toggleProfileMenu()">
+                        <div class="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center text-brand-orange font-bold text-sm uppercase" id="nav-avatar"></div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-bold text-brand-charcoal truncate" id="nav-name"></div>
+                            <div class="text-[10px] text-brand-slate uppercase font-bold tracking-wider truncate" id="nav-role"></div>
+                        </div>
+                        <i class="fa-solid fa-chevron-up text-xs text-brand-slate"></i>
+                    </div>
+                    <div id="profile-menu" class="hidden absolute bottom-[72px] left-4 w-56 bg-white rounded-lg shadow-float border border-brand-border py-1 z-dropdown">
+                        <div class="px-4 py-2 border-b border-brand-border">
+                            <div class="text-[10px] text-brand-slate uppercase tracking-wider font-bold">Session Active</div>
+                            <div class="text-xs text-brand-charcoal truncate mt-0.5" id="menu-email"></div>
+                        </div>
+                        <a href="#/profile" class="block px-4 py-2 text-sm text-brand-charcoal hover:bg-slate-50" onclick="App.UI.closeMenus()"><i class="fa-regular fa-id-badge w-5 text-brand-slate"></i> My Profile</a>
+                        <div class="border-t border-brand-border my-1"></div>
+                        <button onclick="App.Auth.logout()" class="w-full text-left px-4 py-2 text-sm text-brand-red hover:bg-red-50 font-medium"><i class="fa-solid fa-arrow-right-from-bracket w-5"></i> Secure Logout</button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Workspace -->
+            <div class="flex-1 flex flex-col h-full min-w-0 bg-brand-bg relative z-base">
+                <header class="h-16 bg-white border-b border-brand-border flex items-center justify-between px-4 md:px-8 shrink-0 sticky top-0 z-header shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <button onclick="App.UI.toggleSidebar()" class="md:hidden text-brand-charcoal p-2 -ml-2 rounded-md hover:bg-slate-50"><i class="fa-solid fa-bars text-lg"></i></button>
+                        <h1 id="header-title" class="text-lg font-bold text-brand-charcoal">Dashboard</h1>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="text-xs font-bold text-brand-slate bg-slate-100 px-3 py-1.5 rounded-full hidden sm:block"><i class="fa-solid fa-shield-check text-brand-green mr-1"></i> Secure Session</span>
+                    </div>
+                </header>
+                <main id="router-view" class="flex-1 overflow-y-auto p-4 md:p-8 w-full custom-scrollbar pb-24 md:pb-8 relative"></main>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-dashboard">
+        <div class="max-w-6xl mx-auto animate-fadeIn">
+            <div class="mb-6"><h2 class="text-2xl font-bold text-brand-charcoal mb-1">Pricing Intelligence</h2><p class="text-sm text-brand-slate">Supplier → Market → Customer → Rentova</p></div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <a href="#/meeting" class="glass-card p-5 text-left hover:border-brand-orange hover:shadow-md transition-all group relative overflow-hidden flex flex-col h-full"><div class="w-10 h-10 rounded-lg bg-orange-50 text-brand-orange flex items-center justify-center mb-4"><i class="fa-solid fa-handshake"></i></div><h3 class="font-bold text-brand-charcoal text-sm mb-1">Supplier Meeting</h3><p class="text-xs text-brand-slate">Live supplier calculation.</p></a>
+                <a href="#/products" class="glass-card p-5 text-left hover:border-brand-orange hover:shadow-md transition-all group relative overflow-hidden flex flex-col h-full"><div class="w-10 h-10 rounded-lg bg-slate-50 text-brand-slate flex items-center justify-center mb-4"><i class="fa-solid fa-database"></i></div><h3 class="font-bold text-brand-charcoal text-sm mb-1">Product Master</h3><p class="text-xs text-brand-slate">Pricing benchmarks.</p></a>
+                <a href="#/suppliers" class="glass-card p-5 text-left hover:border-brand-orange hover:shadow-md transition-all group relative overflow-hidden flex flex-col h-full"><div class="w-10 h-10 rounded-lg bg-slate-50 text-brand-slate flex items-center justify-center mb-4"><i class="fa-solid fa-truck-fast"></i></div><h3 class="font-bold text-brand-charcoal text-sm mb-1">Suppliers CRM</h3><p class="text-xs text-brand-slate">Manage supplier records.</p></a>
+                <a href="#/bundles" class="glass-card p-5 text-left hover:border-brand-orange hover:shadow-md transition-all group relative overflow-hidden flex flex-col h-full"><div class="w-10 h-10 rounded-lg bg-slate-50 text-brand-slate flex items-center justify-center mb-4"><i class="fa-solid fa-layer-group"></i></div><h3 class="font-bold text-brand-charcoal text-sm mb-1">Bundle Engine</h3><p class="text-xs text-brand-slate">Multi-SKU modelling.</p></a>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-card md:col-span-2 flex flex-col">
+                    <div class="p-5 border-b border-brand-border flex justify-between items-center bg-slate-50"><h2 class="font-bold text-brand-charcoal text-sm uppercase tracking-wide">Recent Scenarios</h2></div>
+                    <div id="dash-calcs" class="p-5 flex-1 space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar"></div>
+                </div>
+                <div class="glass-card p-5 bg-brand-charcoal text-white rounded-lg flex flex-col shadow-lg relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-10 -mt-10 blur-xl"></div>
+                    <h2 class="font-bold text-brand-orange text-sm tracking-wide mb-6">Global Economics</h2>
+                    <div class="space-y-5 z-10">
+                        <div><div class="text-xs text-slate-400 mb-1 uppercase font-bold tracking-wider">Target Commission</div><div class="text-2xl font-bold" id="dash-comm"></div></div>
+                        <div><div class="text-xs text-slate-400 mb-1 uppercase font-bold tracking-wider">Min. Contribution</div><div class="text-2xl font-bold" id="dash-min"></div></div>
+                        <div><div class="text-xs text-slate-400 mb-1 uppercase font-bold tracking-wider">Active SKUs</div><div class="text-2xl font-bold" id="dash-skus"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-meeting">
+        <div class="max-w-6xl mx-auto animate-fadeIn pb-10">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+                <div><h1 class="text-2xl font-bold text-brand-charcoal mb-1">Supplier Meeting Calculator</h1><p class="text-sm text-brand-slate">Algorithmic live pricing & negotiation.</p></div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 relative items-start">
+                <div class="lg:col-span-7 space-y-4 pb-20 lg:pb-0">
+                    <div class="glass-card">
+                        <div class="p-4 border-b border-brand-border bg-slate-50 flex items-center gap-3"><div class="w-6 h-6 rounded-md bg-brand-charcoal text-white text-xs font-bold flex items-center justify-center">1</div><h2 class="font-bold text-brand-charcoal text-sm uppercase tracking-wide">Product Selection</h2></div>
+                        <div class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div><label class="block text-xs font-bold text-brand-slate uppercase tracking-wider mb-1.5">Category</label><select id="meet-cat" class="input-premium"></select></div>
+                            <div><label class="block text-xs font-bold text-brand-slate uppercase tracking-wider mb-1.5">SKU</label><select id="meet-sku" class="input-premium"></select></div>
+                        </div>
+                    </div>
+                    <div class="glass-card">
+                        <div class="p-4 border-b border-brand-border bg-slate-50 flex items-center gap-3"><div class="w-6 h-6 rounded-md bg-brand-charcoal text-white text-xs font-bold flex items-center justify-center">2</div><h2 class="font-bold text-brand-charcoal text-sm uppercase tracking-wide">Supplier Ask & Risk</h2></div>
+                        <div class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div><label class="block text-xs font-bold text-brand-charcoal uppercase tracking-wider mb-1.5">Supplier Payout (₹/mo) <span class="text-brand-red">*</span></label><input type="number" id="meet-payout" class="input-premium text-lg font-bold text-brand-orange" placeholder="Enter ask..."></div>
+                            <div><label class="block text-xs font-bold text-brand-slate uppercase tracking-wider mb-1.5">Logistics / Service Absorbed</label><select id="meet-service" class="input-premium text-sm"><option value="0">Standard (Supplier covers)</option><option value="80">Rentova covers (+₹80 cost)</option></select></div>
+                        </div>
+                    </div>
+                    <div class="glass-card">
+                        <div class="p-4 border-b border-brand-border bg-slate-50 flex items-center gap-3"><div class="w-6 h-6 rounded-md bg-brand-charcoal text-white text-xs font-bold flex items-center justify-center">3</div><h2 class="font-bold text-brand-charcoal text-sm uppercase tracking-wide">Market Economics</h2></div>
+                        <div class="p-5">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
+                                <div><label class="block text-xs font-bold text-brand-slate uppercase tracking-wider mb-1.5">Market Ref (₹)</label><input type="number" id="meet-ref" class="input-premium"></div>
+                                <div><label class="block text-xs font-bold text-brand-slate uppercase tracking-wider mb-1.5">Hard Ceiling (₹)</label><input type="number" id="meet-ceil" class="input-premium text-brand-red font-bold"></div>
+                            </div>
+                            <label class="block text-xs font-bold text-brand-slate uppercase tracking-wider mb-2">Price Positioning Strategy</label>
+                            <div class="grid grid-cols-4 gap-2">
+                                <label class="cursor-pointer"><input type="radio" name="meet-pos" value="1.05" class="peer hidden"><div class="text-center py-2 px-1 border border-brand-border rounded-md text-xs font-bold text-brand-slate peer-checked:bg-brand-orange peer-checked:text-white peer-checked:border-brand-orange transition">+5%</div></label>
+                                <label class="cursor-pointer"><input type="radio" name="meet-pos" value="1.00" class="peer hidden"><div class="text-center py-2 px-1 border border-brand-border rounded-md text-xs font-bold text-brand-slate peer-checked:bg-brand-orange peer-checked:text-white peer-checked:border-brand-orange transition">0% (Match)</div></label>
+                                <label class="cursor-pointer"><input type="radio" name="meet-pos" value="0.98" class="peer hidden" checked><div class="text-center py-2 px-1 border border-brand-border rounded-md text-xs font-bold text-brand-slate peer-checked:bg-brand-orange peer-checked:text-white peer-checked:border-brand-orange transition">-2%</div></label>
+                                <label class="cursor-pointer"><input type="radio" name="meet-pos" value="0.95" class="peer hidden"><div class="text-center py-2 px-1 border border-brand-border rounded-md text-xs font-bold text-brand-slate peer-checked:bg-brand-orange peer-checked:text-white peer-checked:border-brand-orange transition">-5%</div></label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lg:hidden flex gap-3 mt-4">
+                        <button id="meet-btn-calc-mob" class="btn-primary flex-1 py-3 text-base shadow-lg"><i class="fa-solid fa-calculator"></i> Calculate Decision</button>
+                    </div>
+                </div>
+
+                <!-- Outputs -->
+                <div class="lg:col-span-5 relative" id="meet-out-wrapper">
+                    <div class="glass-card sticky top-20 shadow-premium border-t-4 border-slate-200 transition-colors duration-300 flex flex-col" id="meet-out-card">
+                        <div class="p-5 border-b border-brand-border flex justify-between items-center bg-slate-50">
+                            <h2 class="font-bold text-lg text-brand-charcoal uppercase tracking-wide">Decision Engine</h2>
+                            <span class="px-3 py-1 rounded-md text-xs font-bold tracking-widest uppercase bg-slate-200 text-brand-slate shadow-sm" id="out-badge">Awaiting</span>
+                        </div>
+                        <div class="p-5 bg-white">
+                            <div class="text-sm font-bold text-brand-charcoal mb-4 min-h-[48px] leading-snug border-l-2 border-brand-slate pl-3" id="out-reason">Select SKU and enter Payout to calculate.</div>
+                            <div class="grid grid-cols-2 gap-4 mb-5">
+                                <div class="bg-brand-bg p-3 rounded-lg border border-brand-border">
+                                    <div class="text-[10px] font-bold text-brand-slate uppercase tracking-widest mb-1">Rec. Cust. Rent</div>
+                                    <div class="text-3xl font-bold text-brand-charcoal" id="out-price">₹0</div>
+                                </div>
+                                <div class="bg-brand-bg p-3 rounded-lg border border-brand-border">
+                                    <div class="text-[10px] font-bold text-brand-slate uppercase tracking-widest mb-1">Max Supp. Payout</div>
+                                    <div class="text-3xl font-bold text-brand-orange" id="out-max">₹0</div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 pt-4 border-t border-brand-border">
+                                <div><div class="text-[10px] font-bold text-brand-slate uppercase tracking-widest mb-0.5">Absolute Floor</div><div class="text-sm font-bold text-brand-charcoal" id="out-floor">₹0</div></div>
+                                <div><div class="text-[10px] font-bold text-brand-slate uppercase tracking-widest mb-0.5">Rentova Contrib.</div><div class="text-sm font-bold text-brand-slate" id="out-contrib">₹0</div></div>
+                                <div><div class="text-[10px] font-bold text-brand-slate uppercase tracking-widest mb-0.5">Supplier Gap</div><div class="text-sm font-bold text-brand-charcoal" id="out-gap">₹0</div></div>
+                    <div class="p-5 border-t border-brand-border flex gap-2 hidden lg:flex">
+                        <button type="button" id="meet-btn-calc-desk" class="btn-primary flex-1 text-sm py-2">Calculate Now</button>
+                        <button type="button" id="meet-btn-save-desk" class="btn-secondary py-2 px-3 disabled:opacity-50" disabled title="Save Scenario"><i class="fa-regular fa-bookmark"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div class="lg:hidden flex gap-3 mt-4">
+                <button type="button" id="meet-btn-calc-mob" class="btn-primary flex-1 py-3 text-base shadow-lg"><i class="fa-solid fa-calculator"></i> Calculate Decision</button>
+                <button type="button" id="meet-btn-save-mob" class="btn-secondary py-3 px-4 shadow-lg disabled:opacity-50" disabled title="Save Scenario"><i class="fa-regular fa-bookmark"></i></button>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-products">
+        <div class="max-w-6xl mx-auto h-full flex flex-col animate-fadeIn pb-10">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+                <div><h1 class="text-2xl font-bold text-brand-charcoal mb-1">Product Master</h1><p class="text-sm text-brand-slate">Pricing benchmarks and SKU economics.</p></div>
+                <div class="flex gap-2 w-full md:w-auto">
+                    <button class="btn-primary text-xs" onclick="App.Views.Products.openModal()"><i class="fa-solid fa-plus"></i> Add Custom SKU</button>
+                </div>
+            </div>
+            <div class="glass-card flex flex-col flex-1 min-h-[500px]">
+                <div class="p-4 border-b border-brand-border flex flex-col sm:flex-row gap-3 bg-slate-50 shrink-0">
+                    <input type="text" id="prod-search" placeholder="Search SKU..." class="input-premium py-2 text-sm flex-1">
+                </div>
+                <div class="flex-1 overflow-x-auto bg-white custom-scrollbar">
+                    <table class="w-full text-left border-collapse text-sm whitespace-nowrap min-w-[800px]">
+                        <thead class="bg-white sticky top-0 shadow-sm z-10 text-brand-slate text-[10px] uppercase tracking-wider font-bold">
+                            <tr><th class="px-5 py-3 border-b">Category</th><th class="px-5 py-3 border-b">SKU Name</th><th class="px-5 py-3 border-b text-right">Target (₹)</th><th class="px-5 py-3 border-b text-right">Ceiling (₹)</th><th class="px-5 py-3 border-b text-center">Act</th></tr>
+                        </thead>
+                        <tbody id="prod-tbody" class="divide-y divide-brand-border text-brand-charcoal"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-suppliers">
+        <div class="max-w-6xl mx-auto animate-fadeIn pb-10">
+            <div class="flex justify-between items-end mb-6">
+                <div><h1 class="text-2xl font-bold text-brand-charcoal mb-1">Supplier CRM</h1><p class="text-sm text-brand-slate">Manage supplier network and statuses.</p></div>
+                <button class="btn-primary text-xs" onclick="App.Views.Suppliers.openModal()"><i class="fa-solid fa-truck-fast"></i> Add Supplier</button>
+            </div>
+            <div class="glass-card overflow-hidden">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse text-sm min-w-[600px]">
+                        <thead class="bg-slate-50 border-b border-brand-border text-brand-slate text-[10px] uppercase tracking-wider font-bold">
+                            <tr><th class="px-5 py-4">Supplier Name</th><th class="px-5 py-4">Location</th><th class="px-5 py-4">Status</th><th class="px-5 py-4 text-right">Act</th></tr>
+                        </thead>
+                        <tbody id="supp-tbody" class="divide-y divide-brand-border"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-bundles">
+        <div class="max-w-6xl mx-auto animate-fadeIn pb-10">
+            <div class="flex justify-between items-end mb-6">
+                <div><h1 class="text-2xl font-bold text-brand-charcoal mb-1">Bundle Engine</h1><p class="text-sm text-brand-slate">Create and model multi-SKU combinations safely.</p></div>
+                <button class="btn-primary text-xs" onclick="App.Views.Bundles.openModal()"><i class="fa-solid fa-layer-group"></i> Create Bundle</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="bundle-grid"></div>
+        </div>
+    </template>
+
+    <template id="tpl-psychology">
+        <div class="max-w-6xl mx-auto animate-fadeIn pb-10">
+            <div class="flex justify-between items-end mb-6">
+                <div><h1 class="text-2xl font-bold text-brand-charcoal mb-1">Pricing Psychology OS</h1><p class="text-sm text-brand-slate">Behavioral economic principles and logic.</p></div>
+                <button class="btn-primary text-xs" onclick="App.Views.Psychology.openModal()"><i class="fa-solid fa-brain"></i> Add Principle</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="psych-grid"></div>
+        </div>
+    </template>
+
+    <template id="tpl-users">
+        <div class="max-w-6xl mx-auto animate-fadeIn pb-10">
+            <div class="flex justify-between items-end mb-6">
+                <div><h1 class="text-2xl font-bold text-brand-charcoal mb-1">User Management</h1><p class="text-sm text-brand-slate">Manage OS access.</p></div>
+                <button class="btn-primary text-xs" onclick="App.Views.Users.openModal()"><i class="fa-solid fa-user-plus"></i> Add User</button>
+            </div>
+            <div class="glass-card overflow-hidden">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse text-sm min-w-[600px]">
+                        <thead class="bg-slate-50 border-b border-brand-border text-brand-slate text-[10px] uppercase tracking-wider font-bold">
+                            <tr><th class="px-5 py-4">User</th><th class="px-5 py-4">Role</th><th class="px-5 py-4">Status</th><th class="px-5 py-4 text-right">Act</th></tr>
+                        </thead>
+                        <tbody id="users-tbody" class="divide-y divide-brand-border"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-roles">
+        <div class="max-w-6xl mx-auto animate-fadeIn pb-10">
+            <div class="flex justify-between items-end mb-6">
+                <div><h1 class="text-2xl font-bold text-brand-charcoal mb-1">Roles & Access</h1><p class="text-sm text-brand-slate">Granular RBAC.</p></div>
+                <button class="btn-primary text-xs" onclick="App.Views.Roles.openModal()"><i class="fa-solid fa-shield-halved"></i> Create Role</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-1 space-y-3" id="roles-list"></div>
+                <div class="md:col-span-2">
+                    <div class="glass-card flex flex-col h-full min-h-[400px]">
+                        <div class="p-5 border-b border-brand-border bg-slate-50 flex justify-between items-center">
+                            <div><h3 class="font-bold text-brand-charcoal" id="rv-title">Select a role</h3><p class="text-xs text-brand-slate mt-1" id="rv-desc">View permissions.</p></div>
+                            <span id="rv-type" class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider hidden"></span>
+                        </div>
+                        <div class="flex-1 p-0 overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-left text-sm border-collapse" id="rv-matrix"></table>
+                        </div>
+                        <div class="p-4 border-t border-brand-border bg-slate-50 flex justify-end gap-3 hidden" id="rv-actions">
+                            <button class="btn-secondary text-brand-red border-transparent hover:bg-red-50" id="btn-del-role">Delete</button>
+                            <button class="btn-primary" id="btn-edit-role">Edit Permissions</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-audit">
+        <div class="max-w-6xl mx-auto animate-fadeIn pb-10">
+            <div class="mb-6"><h1 class="text-2xl font-bold text-brand-charcoal mb-1">Audit Logs</h1><p class="text-sm text-brand-slate">Immutable system records.</p></div>
+            <div class="glass-card overflow-hidden flex flex-col">
+                <div class="p-4 border-b border-brand-border bg-slate-50 flex"><input type="text" id="audit-search" placeholder="Search logs..." class="input-premium text-sm flex-1"></div>
+                <div class="overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse text-sm whitespace-nowrap min-w-[800px]">
+                        <thead class="bg-white sticky top-0 shadow-sm z-10 text-brand-slate text-[10px] uppercase tracking-wider font-bold">
+                            <tr><th class="px-5 py-3 border-b">Time</th><th class="px-5 py-3 border-b">User</th><th class="px-5 py-3 border-b">Action</th><th class="px-5 py-3 border-b">Details</th></tr>
+                        </thead>
+                        <tbody id="audit-tbody" class="divide-y divide-brand-border font-mono text-xs"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-settings">
+        <div class="max-w-4xl mx-auto animate-fadeIn pb-10">
+            <div class="mb-6 flex justify-between items-end">
+                <div><h1 class="text-2xl font-bold text-brand-charcoal mb-1">Global Settings</h1><p class="text-sm text-brand-slate">OS pricing architecture.</p></div>
+                <button id="btn-save-settings" class="btn-primary">Save Config</button>
+            </div>
+            <div class="glass-card p-0 overflow-hidden mb-6">
+                <div class="p-5 border-b border-brand-border bg-slate-50"><h2 class="font-bold text-brand-charcoal">Global Margins & Reserves</h2></div>
+                <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 bg-white" id="settings-form">
+                    <div><label class="block text-xs font-bold text-brand-slate uppercase mb-1.5">Target Commission (%)</label><input type="number" id="set-comm" class="input-premium"></div>
+                    <div><label class="block text-xs font-bold text-brand-slate uppercase mb-1.5">Min. Contribution (₹)</label><input type="number" id="set-min" class="input-premium text-brand-red font-bold"></div>
+                    <div><label class="block text-xs font-bold text-brand-slate uppercase mb-1.5">Var. Reserve (₹/mo)</label><input type="number" id="set-var" class="input-premium"></div>
+                    <div><label class="block text-xs font-bold text-brand-slate uppercase mb-1.5">Maint. Reserve (₹/mo)</label><input type="number" id="set-maint" class="input-premium"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-profile">
+        <div class="max-w-3xl mx-auto animate-fadeIn pb-10">
+            <div class="mb-6"><h1 class="text-2xl font-bold text-brand-charcoal mb-1">My Profile</h1></div>
+            <div class="glass-card p-6 md:p-10 flex flex-col items-center text-center">
+                <div class="w-24 h-24 rounded-full bg-orange-100 text-brand-orange flex items-center justify-center text-4xl font-bold mb-4 uppercase" id="prof-avatar"></div>
+                <h2 class="text-xl font-bold text-brand-charcoal" id="prof-name"></h2>
+                <p class="text-sm font-bold text-brand-orange uppercase tracking-wider mb-1" id="prof-role"></p>
+                <p class="text-sm text-brand-slate mb-8" id="prof-email"></p>
+                <div class="w-full max-w-sm border-t border-brand-border pt-8 text-left">
+                    <h3 class="font-bold text-brand-charcoal mb-4 text-sm uppercase tracking-wider">Change Password</h3>
+                    <form id="form-password" class="space-y-4">
+                        <div><label class="block text-xs font-semibold text-brand-slate mb-1">New Password</label><input type="password" id="cp-new" class="input-premium" required minlength="6"></div>
+                        <button type="submit" class="btn-primary w-full mt-2">Update Password</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        // --- CONSTANTS & SEEDS ---
+        const DEFAULTS = { comm: 20, minContrib: 100, varReserve: 40, maintReserve: 0 };
+        const MODULES = ['dashboard', 'pricing', 'products', 'suppliers', 'bundles', 'psychology', 'analytics', 'users', 'roles', 'audit', 'settings'];
+        const NAV_CFG = [
+            { id: 'dashboard', icon: 'fa-house', label: 'Dashboard', path: '#/dashboard' },
+            { id: 'pricing', icon: 'fa-handshake', label: 'Supplier Meeting', path: '#/meeting' },
+            { id: 'products', icon: 'fa-database', label: 'Product Master', path: '#/products' },
+            { id: 'suppliers', icon: 'fa-truck-fast', label: 'Suppliers CRM', path: '#/suppliers' },
+            { id: 'bundles', icon: 'fa-layer-group', label: 'Bundle Engine', path: '#/bundles' },
+            { id: 'psychology', icon: 'fa-brain', label: 'Pricing Psych', path: '#/psychology' },
+            { divider: true },
+            { id: 'users', icon: 'fa-users', label: 'Users', path: '#/users' },
+            { id: 'roles', icon: 'fa-shield-halved', label: 'Roles & Access', path: '#/roles' },
+            { id: 'audit', icon: 'fa-list-check', label: 'Audit Logs', path: '#/audit' },
+            { id: 'settings', icon: 'fa-sliders', label: 'Settings', path: '#/settings' }
+        ];
+
+        const SEED_ROLES = [
+            { id: 'r_sa', name: 'Super Admin', type: 'system', desc: 'Full access.', perms: MODULES.reduce((a,m)=>({...a, [m]:{v:1,c:1,e:1,d:1}}), {}) },
+            { id: 'r_mgr', name: 'Manager', type: 'system', desc: 'Ops access.', perms: { dashboard:{v:1}, pricing:{v:1,c:1,e:1}, products:{v:1}, suppliers:{v:1,c:1,e:1}, bundles:{v:1,c:1,e:1}, psychology:{v:1}, users:{v:0}, roles:{v:0}, audit:{v:0}, settings:{v:0} } },
+            { id: 'r_acc', name: 'Accounts Department', type: 'system', desc: 'Finance & Audit access.', perms: { dashboard:{v:1}, pricing:{v:1}, products:{v:1}, suppliers:{v:1}, bundles:{v:1}, psychology:{v:1}, users:{v:0}, roles:{v:0}, audit:{v:1,c:0,e:0,d:0}, settings:{v:1} } }
+        ];
+        const SEED_USERS = [
+            { id: 'u_1', name: 'System Founder', username: 'admin', email: 'admin@rentova.com', password: 'admin123', roleId: 'r_sa', designation: 'CEO', status: 'active' }
+        ];
+        const SEED_PRODUCTS = [
+            { id: 'p_1', cat: 'Appliances', name: 'Window AC 1.0 Ton', ref: 1125, ceil: 1250 },
+            { id: 'p_2', cat: 'Appliances', name: 'Single Door Fridge 190L', ref: 650, ceil: 729 },
+            { id: 'p_3', cat: 'Furniture', name: 'Queen Bed Frame', ref: 738, ceil: 803 },
+            { id: 'p_4', cat: 'IT', name: 'Core i5 Laptop', ref: 1800, ceil: 2200 }
+        ];
+        const SEED_SUPPLIERS = [
+            { id: 's_1', name: 'ElectroHub NCR', loc: 'Delhi', status: 'ACTIVE', p: '9876543210' },
+            { id: 's_2', name: 'FurniRent Co', loc: 'Gurgaon', status: 'NEGOTIATING', p: '9988776655' }
+        ];
+        const SEED_BUNDLES = [
+            { id: 'b_1', name: 'Basic Studio Combo', skus: ['p_2', 'p_3'], disc: 100 }
+        ];
+        const SEED_PSYCH = [
+            { id: 'ps_1', t: 'Reference Anchoring', d: 'Present high comparison price to make actual price seem reasonable.', r: 'Do not fabricate fake MRP.' }
+        ];
+
+        // --- GLOBAL STATE & DATABASE ---
+        const App = {
+            State: { users: [], roles: [], products: [], suppliers: [], bundles: [], psychology: [], audit: [], calcs: [], settings: { ...DEFAULTS }, session: null },
+            
+            DB: {
+                load: () => {
+                    try {
+                        const s = localStorage.getItem('rentova_os_v5');
+                        if (s) {
+                            App.State = { ...App.State, ...JSON.parse(s), session: null };
+                            // Auto-patch Super Admin perms to prevent lockout on new modules
+                            const sa = App.State.roles.find(r => r.id === 'r_sa');
+                            if(sa) MODULES.forEach(m => { if(!sa.perms[m]) sa.perms[m] = {v:1,c:1,e:1,d:1}; });
+                            
+                            // Auto-patch Accounts role for existing local state
+                            if(!App.State.roles.find(r => r.id === 'r_acc')) {
+                                App.State.roles.push({ id: 'r_acc', name: 'Accounts Department', type: 'system', desc: 'Finance & Audit access.', perms: { dashboard:{v:1}, pricing:{v:1}, products:{v:1}, suppliers:{v:1}, bundles:{v:1}, psychology:{v:1}, users:{v:0}, roles:{v:0}, audit:{v:1,c:0,e:0,d:0}, settings:{v:1} } });
+                                App.DB.save();
+                            }
+                        } else {
+                            App.State.users = [...SEED_USERS]; App.State.roles = [...SEED_ROLES]; App.State.products = [...SEED_PRODUCTS];
+                            App.State.suppliers = [...SEED_SUPPLIERS]; App.State.bundles = [...SEED_BUNDLES]; App.State.psychology = [...SEED_PSYCH];
+                            App.DB.save();
+                        }
+                    } catch(e) { console.error(e); }
+                },
+                save: () => { const toSave = { ...App.State }; delete toSave.session; localStorage.setItem('rentova_os_v5', JSON.stringify(toSave)); }
+            },
+
+            // --- AUTHENTICATION ---
+            Auth: {
+                login: (e) => {
+                    e.preventDefault();
+                    const btn = document.getElementById('btn-login'); const err = document.getElementById('auth-alert');
+                    btn.disabled = true; btn.innerText = 'Authenticating...'; err.classList.add('hidden');
+                    const em = document.getElementById('login-email').value.toLowerCase(); const pw = document.getElementById('login-password').value;
+                    setTimeout(() => {
+                        const u = App.State.users.find(x => (x.email.toLowerCase() === em || (x.username && x.username.toLowerCase() === em)) && x.password === pw);
+                        if (u) {
+                            if (u.status !== 'active') { err.className = 'mb-4 p-3 rounded-md text-sm bg-red-50 text-brand-red border border-red-100'; err.innerText = 'Account disabled.'; }
+                            else { App.State.session = u; App.Audit.log('Login', 'System', 'Authenticated'); App.Router.boot(); }
+                        } else {
+                            err.className = 'mb-4 p-3 rounded-md text-sm bg-red-50 text-brand-red border border-red-100'; err.innerText = 'Invalid credentials.';
+                        }
+                        btn.disabled = false; btn.innerText = 'Sign In to OS';
+                    }, 400);
+                },
+                signup: (e) => {
+                    e.preventDefault();
+                    const err = document.getElementById('auth-alert'); err.classList.add('hidden');
+                    const em = document.getElementById('reg-email').value.toLowerCase();
+                    if(App.State.users.some(u => u.email.toLowerCase() === em)) { err.className = 'mb-4 p-3 rounded-md text-sm bg-red-50 text-brand-red border border-red-100'; err.innerText = 'Email exists.'; return; }
+                    const nu = { id: 'u_'+Date.now(), name: document.getElementById('reg-name').value, username: em, email: em, password: document.getElementById('reg-pass').value, roleId: 'r_sa', designation: document.getElementById('reg-desig').value, status: 'active' };
+                    App.State.users.push(nu); App.State.session = nu; App.DB.save(); App.Audit.log('Signup', 'System', `Account created for ${em}`); App.Router.boot();
+                },
+                logout: () => { App.Audit.log('Logout', 'System', 'Signed out.'); App.State.session = null; window.location.hash = ''; App.Router.handle(); },
+                toggleMode: (m) => {
+                    document.getElementById('auth-alert').classList.add('hidden');
+                    if(m==='signup') { document.getElementById('form-login').classList.add('hidden'); document.getElementById('form-signup').classList.remove('hidden'); document.getElementById('auth-title').innerText = 'Create Account'; }
+                    else { document.getElementById('form-signup').classList.add('hidden'); document.getElementById('form-login').classList.remove('hidden'); document.getElementById('auth-title').innerText = 'Sign In'; }
+                },
+                can: (module, action='v') => {
+                    if(!App.State.session) return false;
+                    const r = App.State.roles.find(x => x.id === App.State.session.roleId);
+                    return r && r.perms && r.perms[module] && r.perms[module][action] === 1;
+                },
+                enforce: (module, action='v') => {
+                    if(!App.Auth.can(module, action)) { App.UI.toast('Access Denied.', 'error'); return false; }
+                    return true;
+                }
+            },
+
+            Audit: {
+                log: (action, module, details) => {
+                    if(!App.State.session) return;
+                    App.State.audit.unshift({ ts: new Date().toISOString(), user: App.State.session.name, action, module, details });
+                    if(App.State.audit.length > 500) App.State.audit.pop(); App.DB.save();
+                }
+            },
+
+            // --- ROUTER (SPA LOGIC) ---
+            Router: {
+                boot: () => {
+                    if (!App.State.session) { App.Router.handle(); return; }
+                    document.getElementById('app-root').innerHTML = ''; 
+                    document.getElementById('app-root').appendChild(document.getElementById('tpl-app-shell').content.cloneNode(true));
+                    
+                    const nav = document.getElementById('nav-menu'); nav.innerHTML = '';
+                    NAV_CFG.forEach(i => {
+                        if(i.divider) { nav.innerHTML += '<div class="my-2 border-t border-brand-border"></div>'; return; }
+                        const modMap = { '#/meeting':'pricing' }; const reqMod = modMap[i.path] || i.path.replace('#/','');
+                        if(App.Auth.can(reqMod, 'v')) nav.innerHTML += `<a href="${i.path}" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-brand-slate font-medium group"><i class="fa-solid ${i.icon} w-5 text-center transition-colors group-hover:text-brand-orange"></i> <span class="group-hover:text-brand-charcoal">${i.label}</span></a>`;
+                    });
+
+                    document.getElementById('nav-name').innerText = App.State.session.name;
+                    document.getElementById('nav-role').innerText = App.State.session.designation;
+                    document.getElementById('nav-avatar').innerText = App.State.session.name.charAt(0);
+                    document.getElementById('menu-email').innerText = App.State.session.email;
+                    
+                    if(!window.location.hash) window.location.hash = '#/dashboard';
+                    App.Router.handle();
+                },
+                handle: () => {
+                    const hash = window.location.hash || ''; App.UI.closeMenus();
+                    if (!App.State.session) {
+                        if(document.getElementById('form-login')) return;
+                        document.getElementById('app-root').innerHTML = ''; document.getElementById('app-root').appendChild(document.getElementById('tpl-auth').content.cloneNode(true));
+                        return;
+                    }
+                    const routeMap = {
+                        '#/dashboard': { tpl: 'tpl-dashboard', title: 'Dashboard', mod: 'dashboard', init: App.Views.Dashboard.init },
+                        '#/meeting': { tpl: 'tpl-meeting', title: 'Supplier Meeting', mod: 'pricing', init: App.Views.Meeting.init },
+                        '#/products': { tpl: 'tpl-products', title: 'Product Master', mod: 'products', init: App.Views.Products.init },
+                        '#/suppliers': { tpl: 'tpl-suppliers', title: 'Supplier CRM', mod: 'suppliers', init: App.Views.Suppliers.init },
+                        '#/bundles': { tpl: 'tpl-bundles', title: 'Bundle Engine', mod: 'bundles', init: App.Views.Bundles.init },
+                        '#/psychology': { tpl: 'tpl-psychology', title: 'Pricing Psych', mod: 'psychology', init: App.Views.Psychology.init },
+                        '#/users': { tpl: 'tpl-users', title: 'Users', mod: 'users', init: App.Views.Users.init },
+                        '#/roles': { tpl: 'tpl-roles', title: 'Roles', mod: 'roles', init: App.Views.Roles.init },
+                        '#/audit': { tpl: 'tpl-audit', title: 'Audit Logs', mod: 'audit', init: App.Views.Audit.init },
+                        '#/settings': { tpl: 'tpl-settings', title: 'Settings', mod: 'settings', init: App.Views.Settings.init },
+                        '#/profile': { tpl: 'tpl-profile', title: 'My Profile', mod: 'dashboard', init: App.Views.Profile.init } // Everyone can see profile
+                    };
+                    const r = routeMap[hash]; if(!r) { window.location.hash = '#/dashboard'; return; }
+                    if(!App.Auth.can(r.mod, 'v')) { App.UI.toast('Access Restricted', 'error'); window.location.hash = '#/dashboard'; return; }
+
+                    document.getElementById('header-title').innerText = r.title;
+                    document.querySelectorAll('.nav-btn').forEach(el => {
+                        el.className = 'nav-btn flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-sm font-medium group text-brand-slate hover:bg-orange-50';
+                        el.querySelector('i').classList.remove('text-brand-orange');
+                        if(el.getAttribute('href') === hash) { el.classList.add('bg-orange-50', 'text-brand-charcoal'); el.classList.remove('text-brand-slate'); el.querySelector('i').classList.add('text-brand-orange'); }
+                    });
+
+                    const viewContainer = document.getElementById('router-view'); viewContainer.innerHTML = ''; 
+                    const tpl = document.getElementById(r.tpl);
+                    if(tpl) { viewContainer.appendChild(tpl.content.cloneNode(true)); if(r.init) r.init(); }
+                }
+            },
+
+            // --- UI HELPERS ---
+            UI: {
+                toggleSidebar: () => { document.getElementById('app-sidebar').classList.toggle('-translate-x-full'); document.getElementById('mobile-drawer-overlay').classList.toggle('hidden'); },
+                toggleProfileMenu: () => document.getElementById('profile-menu').classList.toggle('hidden'),
+                closeMenus: () => { 
+                    const sb = document.getElementById('app-sidebar'); const overlay = document.getElementById('mobile-drawer-overlay');
+                    if(window.innerWidth < 768 && sb && !sb.classList.contains('-translate-x-full')) { sb.classList.add('-translate-x-full'); overlay.classList.add('hidden'); }
+                    const pm = document.getElementById('profile-menu'); if(pm) pm.classList.add('hidden');
+                },
+                toast: (msg, type='success') => {
+                    const t = document.createElement('div');
+                    t.className = `px-4 py-3 rounded-lg shadow-float text-sm font-medium flex items-center gap-2 border text-white toast-enter ${type==='error'?'bg-brand-red border-red-700':'bg-brand-charcoal border-slate-700'}`;
+                    t.innerHTML = `<i class="fa-solid ${type==='error'?'fa-circle-exclamation':'fa-circle-check'} ${type==='error'?'text-white':'text-brand-green'}"></i> <span>${msg}</span>`;
+                    document.getElementById('toast-root').appendChild(t);
+                    setTimeout(() => { t.classList.replace('toast-enter', 'toast-exit'); setTimeout(()=>t.remove(), 300); }, 3000);
+                },
+                modal: {
+                    show: (html) => { const r = document.getElementById('modal-root'); r.innerHTML = html; r.classList.remove('hidden'); r.classList.add('flex'); },
+                    hide: () => { const r = document.getElementById('modal-root'); r.classList.add('hidden'); r.classList.remove('flex'); r.innerHTML=''; }
+                },
+                fmt: (num) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(num)
+            },
+
+            // --- VIEWS CONTROLLERS ---
+            Views: {
+                Dashboard: {
+                    init: () => {
+                        const s = App.State.settings;
+                        document.getElementById('dash-comm').innerText = s.comm + '%';
+                        document.getElementById('dash-min').innerText = App.UI.fmt(s.minContrib);
+                        document.getElementById('dash-skus').innerText = App.State.products.length;
+                        const list = document.getElementById('dash-calcs');
+                        if(App.State.calcs.length === 0) list.innerHTML = '<p class="text-xs text-brand-slate italic p-4 text-center">No calculations saved yet.</p>';
+                        else list.innerHTML = App.State.calcs.slice(0,5).map(c => `<div class="flex justify-between items-center bg-white p-3 rounded-lg border border-brand-border"><div><div class="font-bold text-brand-charcoal text-sm">${c.sku}</div><div class="text-[10px] text-brand-slate mt-1 uppercase">Ask: <span class="font-bold text-brand-charcoal">${App.UI.fmt(c.ask)}</span></div></div><span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${c.res==='GREEN'?'text-brand-green bg-green-50 border-green-100':(c.res==='RED'?'text-brand-red bg-red-50 border-red-100':'text-brand-orange bg-orange-50 border-orange-100')}">${c.res}</span></div>`).join('');
+                    }
+                },
+                
+                Meeting: {
+                    init: () => {
+                        const catSel = document.getElementById('meet-cat'); const skuSel = document.getElementById('meet-sku');
+                        const cats = [...new Set(App.State.products.map(p => p.cat))];
+                        catSel.innerHTML = '<option value="">-- Category --</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+                        
+                        catSel.onchange = () => { skuSel.innerHTML = '<option value="">-- Select SKU --</option>' + App.State.products.filter(p=>p.cat === catSel.value).map(p => `<option value="${p.id}">${p.name}</option>`).join(''); };
+                skuSel.onchange = () => { const p = App.State.products.find(x => x.id === skuSel.value); if(p) { document.getElementById('meet-ref').value = p.ref; document.getElementById('meet-ceil').value = p.ceil; } };
+
+                const calcLogic = () => {
+                    if(!App.Auth.enforce('pricing', 'c')) return;
+                    const pId = document.getElementById('meet-sku').value; 
+                    const ask = parseFloat(document.getElementById('meet-payout').value);
+                    const ref = parseFloat(document.getElementById('meet-ref').value); 
+                    const ceil = parseFloat(document.getElementById('meet-ceil').value);
+                    
+                    // FIXED: SKU is no longer mandatory for quick calculations. Only the numbers are required.
+                    if(isNaN(ask) || isNaN(ref) || isNaN(ceil)) return App.UI.toast('Please enter Payout, Market Ref, and Ceiling numbers.', 'error');
+                    
+                    const s = App.State.settings || DEFAULTS; 
+                    const commRate = parseFloat(s.comm !== undefined ? s.comm : 20) / 100;
+                    const varRes = parseFloat(s.varReserve !== undefined ? s.varReserve : 40);
+                    const maintRes = parseFloat(s.maintReserve !== undefined ? s.maintReserve : 0);
+                    const minContrib = parseFloat(s.minContrib !== undefined ? s.minContrib : 100);
+
+                    const posRadio = document.querySelector('input[name="meet-pos"]:checked');
+                    const posF = posRadio ? parseFloat(posRadio.value) : 0.98;
+                    const serviceCost = parseFloat(document.getElementById('meet-service').value) || 0;
+                    
+                    const totalReserve = varRes + maintRes + serviceCost;
+
+                    const floor = (ask + totalReserve) / (1 - commRate);
+                    let rec = Math.floor((ref * posF)/50)*50; 
+                    if(rec-1 >= floor) rec=rec-1; else if(rec+49 >= floor) rec=rec+49; else rec=rec+99;
+                    if(rec > ceil && floor <= ceil) rec = ceil; 
+                    
+                    const maxPay = (rec * (1 - commRate)) - totalReserve;
+                    const gap = ask - maxPay;
+                    const contrib = (rec * commRate) - totalReserve;
+
+                    let dec = 'RED', rsn = '';
+                    if(floor > ceil) { dec='RED'; rsn = `Economics exceed hard ceiling of ${App.UI.fmt(ceil)}.`; }
+                    else if(contrib < minContrib) { dec='RED'; rsn = `Contribution fails minimum threshold of ${App.UI.fmt(minContrib)}.`; }
+                    else if(gap > 0) { dec='YELLOW'; rsn = `Supplier gap is ${App.UI.fmt(gap)}. Negotiate a payout reduction.`; }
+                    else { dec='GREEN'; rsn = 'Clean economics. Retains contribution below market ceiling.'; }
+
+                    document.getElementById('out-reason').innerText = rsn;
+                    document.getElementById('out-price').innerText = App.UI.fmt(rec);
+                    document.getElementById('out-max').innerText = App.UI.fmt(maxPay);
+                    document.getElementById('out-floor').innerText = App.UI.fmt(floor);
+                    document.getElementById('out-contrib').innerText = App.UI.fmt(contrib); document.getElementById('out-contrib').className = `text-sm font-bold ${contrib<minContrib?'text-brand-red':'text-brand-green'}`;
+                    document.getElementById('out-gap').innerText = App.UI.fmt(gap); document.getElementById('out-gap').className = `text-sm font-bold ${gap>0?'text-brand-red':'text-brand-charcoal'}`;
+                    
+                    const badge = document.getElementById('out-badge'); badge.innerText = dec;
+                    badge.className = `px-3 py-1 rounded-md text-xs font-bold tracking-widest uppercase shadow-sm ${dec==='GREEN'?'bg-green-100 text-green-700':(dec==='YELLOW'?'bg-orange-100 text-brand-orange':'bg-red-100 text-brand-red')}`;
+                    document.getElementById('meet-out-card').className = `glass-card sticky top-20 shadow-premium border-t-4 transition-colors duration-300 flex flex-col ${dec==='GREEN'?'border-brand-green':(dec==='YELLOW'?'border-brand-orange':'border-brand-red')}`;
+                    
+                    let skuName = 'Custom Calculation';
+                    if(pId) { const p = App.State.products.find(x=>x.id===pId); if(p) skuName = p.name; }
+                    window._lastCalc = { sku: skuName, ask, res: dec };
+                    
+                    document.getElementById('meet-btn-save-desk').disabled = false;
+                    if(document.getElementById('meet-btn-save-mob')) document.getElementById('meet-btn-save-mob').disabled = false;
+                    
+                    if(window.innerWidth < 1024) document.getElementById('router-view').scrollTo({top: document.getElementById('meet-out-wrapper').offsetTop - 20, behavior: 'smooth'});
+                };
+                document.getElementById('meet-btn-calc-desk').onclick = calcLogic; 
+                document.getElementById('meet-btn-calc-mob').onclick = calcLogic;
+                
+                const saveScenario = () => { if(window._lastCalc) { App.State.calcs.unshift(window._lastCalc); App.DB.save(); App.UI.toast('Scenario saved.'); } };
+                document.getElementById('meet-btn-save-desk').onclick = saveScenario;
+                if(document.getElementById('meet-btn-save-mob')) document.getElementById('meet-btn-save-mob').onclick = saveScenario;
+            }
+        },
+
+        Products: {
+                    init: () => {
+                        const render = () => {
+                            const q = document.getElementById('prod-search').value.toLowerCase(); const canEdit = App.Auth.can('products', 'e');
+                            document.getElementById('prod-tbody').innerHTML = App.State.products.filter(p => p.name.toLowerCase().includes(q) || p.cat.toLowerCase().includes(q)).map(p => `
+                                <tr class="hover:bg-slate-50"><td class="px-5 py-3 border-b border-brand-border"><span class="text-[10px] font-bold text-brand-slate uppercase tracking-wider">${p.cat}</span></td>
+                                <td class="px-5 py-3 border-b border-brand-border font-medium">${p.name}</td>
+                                <td class="px-5 py-3 border-b border-brand-border text-right font-bold">${App.UI.fmt(p.ref)}</td>
+                                <td class="px-5 py-3 border-b border-brand-border text-right font-medium text-brand-red">${App.UI.fmt(p.ceil)}</td>
+                                <td class="px-5 py-3 border-b border-brand-border text-center">${canEdit ? `<button class="text-brand-orange hover:text-brand-orangehover" onclick="App.Views.Products.openModal('${p.id}')"><i class="fa-solid fa-pen"></i></button>` : '-'}</td></tr>
+                            `).join('');
+                        };
+                        document.getElementById('prod-search').onkeyup = render; render();
+                    },
+                    openModal: (id) => {
+                        if(!App.Auth.enforce('products', id?'e':'c')) return;
+                        const p = id ? App.State.products.find(x=>x.id===id) : { cat:'', name:'', ref:'', ceil:'' };
+                        App.UI.modal.show(`
+                            <div class="bg-white rounded-xl shadow-float w-full max-w-md overflow-hidden animate-slideUp">
+                                <div class="p-5 border-b border-brand-border flex justify-between items-center bg-slate-50"><h3 class="font-bold">${id?'Edit':'Add'} SKU</h3><button onclick="App.UI.modal.hide()"><i class="fa-solid fa-times"></i></button></div>
+                                <div class="p-6 space-y-4">
+                                    <div><label class="block text-xs font-bold text-brand-slate uppercase mb-1">Category</label><input type="text" id="m-cat" class="input-premium" value="${p.cat}"></div>
+                                    <div><label class="block text-xs font-bold text-brand-slate uppercase mb-1">Name</label><input type="text" id="m-name" class="input-premium" value="${p.name}"></div>
+                                    <div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-brand-slate uppercase mb-1">Target (₹)</label><input type="number" id="m-ref" class="input-premium" value="${p.ref}"></div>
+                                    <div><label class="block text-xs font-bold text-brand-slate uppercase mb-1">Ceiling (₹)</label><input type="number" id="m-ceil" class="input-premium" value="${p.ceil}"></div></div>
+                                </div>
+                                <div class="p-5 border-t border-brand-border flex justify-between bg-slate-50">
+                                    ${id ? `<button onclick="App.Views.Products.del('${id}')" class="text-brand-red text-sm font-bold">Delete</button>` : '<div></div>'}
+                                    <div class="flex gap-2"><button onclick="App.UI.modal.hide()" class="btn-secondary">Cancel</button><button onclick="App.Views.Products.save('${id||''}')" class="btn-primary">Save</button></div>
+                                </div>
+                            </div>
+                        `);
+                    },
+                    save: (id) => {
+                        const cat = document.getElementById('m-cat').value; const name = document.getElementById('m-name').value;
+                        const ref = parseFloat(document.getElementById('m-ref').value); const ceil = parseFloat(document.getElementById('m-ceil').value);
+                        if(id) { const p = App.State.products.find(x=>x.id===id); Object.assign(p, {cat, name, ref, ceil}); App.Audit.log('Edit','Products',name); }
+                        else { App.State.products.unshift({id:'p_'+Date.now(), cat, name, ref, ceil}); App.Audit.log('Create','Products',name); }
+                        App.DB.save(); App.UI.modal.hide(); App.Router.handle(); App.UI.toast('Saved.');
+                    },
+                    del: (id) => { if(confirm('Delete SKU?')) { App.State.products = App.State.products.filter(x=>x.id!==id); App.DB.save(); App.UI.modal.hide(); App.Router.handle(); App.UI.toast('Deleted.'); } }
+                },
+
+                Suppliers: {
+                    init: () => {
+                        const canEdit = App.Auth.can('suppliers', 'e');
+                        document.getElementById('supp-tbody').innerHTML = App.State.suppliers.map(s => `
+                            <tr class="hover:bg-slate-50"><td class="px-5 py-4 border-b border-brand-border"><div class="font-bold">${s.name}</div><div class="text-xs text-brand-slate">${s.p}</div></td>
+                            <td class="px-5 py-4 border-b border-brand-border text-xs font-medium">${s.loc}</td>
+                            <td class="px-5 py-4 border-b border-brand-border"><span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${s.status==='ACTIVE'?'text-brand-green bg-green-50 border-green-100':(s.status==='NEGOTIATING'?'text-brand-orange bg-orange-50 border-orange-100':'text-brand-slate bg-slate-50 border-slate-200')}">${s.status}</span></td>
+                            <td class="px-5 py-4 border-b border-brand-border text-right">${canEdit ? `<button onclick="App.Views.Suppliers.openModal('${s.id}')" class="text-brand-orange hover:text-brand-orangehover"><i class="fa-solid fa-pen"></i></button>` : '-'}</td></tr>
+                        `).join('');
+                    },
+                    openModal: (id) => {
+                        if(!App.Auth.enforce('suppliers', id?'e':'c')) return;
+                        const s = id ? App.State.suppliers.find(x=>x.id===id) : { name:'', loc:'', p:'', status:'NEW' };
+                        App.UI.modal.show(`
+                            <div class="bg-white rounded-xl shadow-float w-full max-w-md overflow-hidden animate-slideUp">
+                                <div class="p-5 border-b border-brand-border flex justify-between items-center bg-slate-50"><h3 class="font-bold">${id?'Edit':'Add'} Supplier</h3><button onclick="App.UI.modal.hide()"><i class="fa-solid fa-times"></i></button></div>
+                                <div class="p-6 space-y-4">
+                                    <div><label class="block text-xs font-bold text-brand-slate uppercase mb-1">Company Name</label><input type="text" id="s-name" class="input-premium" value="${s.name}"></div>
+                                    <div class="grid grid-cols-2 gap-4"><div><label class="block text-xs font-bold text-brand-slate uppercase mb-1">Location</label><input type="text" id="s-loc" class="input-premium" value="${s.loc}"></div>
+                                    <div><label class="block text-xs font-bold text-brand-slate uppercase mb-1">Phone</label><input type="text" id="s-p" class="input-premium" value="${s.p}"></div></div>
+                                    <div><label class="block text-xs font-bold text-brand-slate uppercase mb-1">Status</label><select id="s-status" class="input-premium"><option value="NEW" ${s.status==='NEW'?'selected':''}>NEW</option><option value="NEGOTIATING" ${s.status==='NEGOTIATING'?'selected':''}>NEGOTIATING</option><option value="PILOT" ${s.status==='PILOT'?'selected':''}>PILOT</option><option value="ACTIVE" ${s.status==='ACTIVE'?'selected':''}>ACTIVE</option></select></div>
+                                </div>
+                                <div class="p-5 border-t border-brand-border flex justify-between bg-slate-50">
+                                    ${id ? `<button onclick="App.Views.Suppliers.del('${id}')" class="text-brand-red text-sm font-bold">Delete</button>` : '<div></div>'}
+                                    <div class="flex gap-2"><button onclick="App.UI.modal.hide()" class="btn-secondary">Cancel</button><button onclick="App.Views.Suppliers.save('${id||''}')" class="btn-primary">Save</button></div>
+                                </div>
+                            </div>
+                        `);
+                    },
+                    save: (id) => {
+                        const name = document.getElementById('s-name').value; const loc = document.getElementById('s-loc').value; const p = document.getElementById('s-p').value; const status = document.getElementById('s-status').value;
+                        if(id) { Object.assign(App.State.suppliers.find(x=>x.id===id), {name, loc, p, status}); }
+                        else { App.State.suppliers.unshift({id:'s_'+Date.now(), name, loc, p, status}); }
+                        App.DB.save(); App.UI.modal.hide(); App.Router.handle(); App.UI.toast('Supplier saved.');
+                    },
+                    del: (id) => { if(confirm('Delete supplier?')) { App.State.suppliers = App.State.suppliers.filter(x=>x.id!==id); App.DB.save(); App.UI.modal.hide(); App.Router.handle(); App.UI.toast('Deleted.'); } }
+                },
+
+                Bundles: {
+                    init: () => {
+                        document.getElementById('bundle-grid').innerHTML = App.State.bundles.map(b => {
+                            const skus = b.skus.map(id => App.State.products.find(p=>p.id===id)).filter(Boolean);
+                            const totalFloor = skus.reduce((sum, p) => sum + p.ceil, 0); // Simplified floor proxy
+                            return `
+                                <div class="glass-card p-5 flex flex-col hover:border-brand-orange transition-all">
+                                    <div class="flex justify-between items-start mb-3"><h3 class="font-bold text-brand-charcoal">${b.name}</h3><button onclick="App.Views.Bundles.openModal('${b.id}')" class="text-brand-orange"><i class="fa-solid fa-pen text-sm"></i></button></div>
+                                    <div class="text-xs text-brand-slate mb-4 space-y-1">${skus.map(s=>`<div>• ${s.name}</div>`).join('')}</div>
+                                    <div class="mt-auto border-t border-brand-border pt-4 grid grid-cols-2 gap-2">
+                                        <div><div class="text-[10px] uppercase font-bold text-brand-slate">Target Disc.</div><div class="font-bold text-brand-orange">₹${b.disc}</div></div>
+                                        <div><div class="text-[10px] uppercase font-bold text-brand-slate">SKUs</div><div class="font-bold text-brand-charcoal">${skus.length} Items</div></div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    },
+                    openModal: (id) => {
+                        if(!App.Auth.enforce('bundles', id?'e':'c')) return;
+                        const b = id ? App.State.bundles.find(x=>x.id===id) : { name:'', skus:[], disc:0 };
+                        const skuOpts = App.State.products.map(p => `<label class="flex items-center gap-2 p-2 hover:bg-slate-50 rounded"><input type="checkbox" value="${p.id}" class="b-sku-chk" ${b.skus.includes(p.id)?'checked':''}> <span class="text-sm">${p.name}</span></label>`).join('');
+                        App.UI.modal.show(`
+                            <div class="bg-white rounded-xl shadow-float w-full max-w-md overflow-hidden animate-slideUp max-h-[90vh] flex flex-col">
+                                <div class="p-5 border-b border-brand-border flex justify-between items-center bg-slate-50 shrink-0"><h3 class="font-bold">${id?'Edit':'Create'} Bundle</h3><button onclick="App.UI.modal.hide()"><i class="fa-solid fa-times"></i></button></div>
+                                <div class="p-6 space-y-4 overflow-y-auto">
+                                    <div><label class="block text-xs font-bold text-brand-slate uppercase mb-1">Bundle Name</label><input type="text" id="b-name" class="input-premium" value="${b.name}"></div>
+                                    <div><label class="block text-xs font-bold text-brand-slate uppercase mb-1">Target Discount (₹)</label><input type="number" id="b-disc" class="input-premium" value="${b.disc}"></div>
+                                    <div><label class="block text-xs font-bold text-brand-slate uppercase mb-2">Select SKUs</label><div class="border rounded-md max-h-40 overflow-y-auto p-1 custom-scrollbar">${skuOpts}</div></div>
+                                </div>
+                                <div class="p-5 border-t border-brand-border flex justify-between bg-slate-50 shrink-0">
+                                    ${id ? `<button onclick="App.Views.Bundles.del('${id}')" class="text-brand-red text-sm font-bold">Delete</button>` : '<div></div>'}
+                                    <div class="flex gap-2"><button onclick="App.UI.modal.hide()" class="btn-secondary">Cancel</button><button onclick="App.Views.Bundles.save('${id||''}')" class="btn-primary">Save Bundle</button></div>
+                                </div>
+                            </div>
+                        `);
+                    },
+                    save: (id) => {
+                        const name = document.getElementById('b-name').value; const disc = parseFloat(document.getElementById('b-disc').value) || 0;
+                        const skus = Array.from(document.querySelectorAll('.b-sku-chk:checked')).map(cb => cb.value);
+                        if(skus.length < 2) return App.UI.toast('Select at least 2 SKUs.', 'error');
+                        if(id) { Object.assign(App.State.bundles.find(x=>x.id===id), {name, disc, skus}); }
+                        else { App.State.bundles.unshift({id:'b_'+Date.now(), name, disc, skus}); }
+                        App.DB.save(); App.UI.modal.hide(); App.Router.handle(); App.UI.toast('Bundle saved.');
+                    },
+                    del: (id) => { if(confirm('Delete Bundle?')) { App.State.bundles = App.State.bundles.filter(x=>x.id!==id); App.DB.save(); App.UI.modal.hide(); App.Router.handle(); } }
+                },
+
+                Psychology: {
+                    init: () => {
+                        const canEdit = App.Auth.can('psychology', 'e');
+                        document.getElementById('psych-grid').innerHTML = App.State.psychology.map(p => `
+                            <div class="glass-card p-5 border-l-4 border-brand-orange hover:shadow-md transition flex flex-col">
+                                <div class="flex justify-between items-start mb-2"><h3 class="font-bold text-brand-charcoal">${p.t}</h3>${canEdit?`<button onclick="App.Views.Psychology.openModal('${p.id}')" class="text-brand-orange hover:text-brand-orangehover"><i class="fa-solid fa-pen text-xs"></i></button>`:''}</div>
+                                <p class="text-xs text-brand-slate mb-4 border-b border-brand-border pb-3"><span class="font-bold text-brand-charcoal">Principle:</span> ${p.d}</p>
+                                <div class="text-[10px] text-brand-red uppercase tracking-wider font-bold bg-red-50 p-2 rounded border border-red-100 mt-auto"><i class="fa-solid fa-shield mr-1"></i> Guardrail: ${p.r}</div>
+                            </div>
+                        `).join('');
+                    },
+                    openModal: (id) => {
+                        if(!App.Auth.enforce('psychology', id?'e':'c')) return;
+                        const p = id ? App.State.psychology.find(x=>x.id===id) : { t:'', d:'', r:'' };
+                        App.UI.modal.show(`
+                            <div class="bg-white rounded-xl shadow-float w-full max-w-md overflow-hidden animate-slideUp">
+                                <div class="p-5 border-b border-brand-border flex justify-between items-center bg-slate-50"><h3 class="font-bold">${id?'Edit':'Add'} Principle</h3><button onclick="App.UI.modal.hide()"><i class="fa-solid fa-times"></i></button></div>
+                                <div class="p-6 space-y-4">
+                                    <div><label class="block text-xs font-bold text-brand-slate uppercase mb-1">Title</label><input type="text" id="p-t" class="input-premium" value="${p.t}"></div>
+                                    <div><label class="block text-xs font-bold text-brand-slate uppercase mb-1">Description</label><textarea id="p-d" class="input-premium h-20">${p.d}</textarea></div>
+                                    <div><label class="block text-xs font-bold text-brand-slate uppercase mb-1">Guardrail / Risk</label><input type="text" id="p-r" class="input-premium" value="${p.r}"></div>
+                                </div>
+                                <div class="p-5 border-t border-brand-border flex justify-between bg-slate-50">
+                                    ${id ? `<button onclick="App.Views.Psychology.del('${id}')" class="text-brand-red text-sm font-bold">Delete</button>` : '<div></div>'}
+                                    <div class="flex gap-2"><button onclick="App.UI.modal.hide()" class="btn-secondary">Cancel</button><button onclick="App.Views.Psychology.save('${id||''}')" class="btn-primary">Save</button></div>
+                                </div>
+                            </div>
+                        `);
+                    },
+                    save: (id) => {
+                        const t = document.getElementById('p-t').value; const d = document.getElementById('p-d').value; const r = document.getElementById('p-r').value;
+                        if(id) { Object.assign(App.State.psychology.find(x=>x.id===id), {t, d, r}); }
+                        else { App.State.psychology.unshift({id:'ps_'+Date.now(), t, d, r}); }
+                        App.DB.save(); App.UI.modal.hide(); App.Router.handle();
+                    },
+                    del: (id) => { if(confirm('Delete principle?')) { App.State.psychology = App.State.psychology.filter(x=>x.id!==id); App.DB.save(); App.UI.modal.hide(); App.Router.handle(); } }
+                },
+
+                Users: {
+                    init: () => {
+                        const canEdit = App.Auth.can('users','e');
+                        document.getElementById('users-tbody').innerHTML = App.State.users.map(u => {
+                            const r = App.State.roles.find(x=>x.id===u.roleId);
+                            return `<tr class="hover:bg-slate-50"><td class="px-5 py-4 border-b border-brand-border"><div class="font-bold">${u.name}</div><div class="text-xs text-brand-slate">${u.email} ${u.username ? `<span class="text-brand-orange">(@${u.username})</span>` : ''}</div></td>
+                                <td class="px-5 py-4 border-b border-brand-border"><span class="text-xs font-bold ${r?.type==='system'?'text-brand-orange':'text-brand-charcoal'}">${r?r.name:'Unknown'}</span></td>
+                                <td class="px-5 py-4 border-b border-brand-border"><span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${u.status==='active'?'text-brand-green bg-green-50 border-green-100':'text-brand-red bg-red-50 border-red-100'}">${u.status}</span></td>
+                                <td class="px-5 py-4 border-b border-brand-border text-right">${canEdit ? `<button onclick="App.Views.Users.openModal('${u.id}')" class="text-brand-orange hover:text-brand-orangehover mr-3" title="Edit User"><i class="fa-solid fa-pen"></i></button><button onclick="App.Views.Users.toggle('${u.id}')" class="text-brand-orange hover:text-brand-orangehover" title="Toggle Access"><i class="fa-solid fa-power-off"></i></button>` : '-'}</td></tr>`;
+                        }).join('');
+                    },
+                    openModal: (id) => {
+                        if(!App.Auth.enforce('users', id ? 'e' : 'c')) return;
+                        const u = id ? App.State.users.find(x=>x.id===id) : { name:'', username:'', email:'', designation:'', roleId:'', password:'' };
+                        const rOpts = App.State.roles.map(r=>`<option value="${r.id}" ${u.roleId===r.id?'selected':''}>${r.name}</option>`).join('');
+                        const isAdmin = u.id === 'u_1'; // Detects if you are editing the default admin
+                        
+                        App.UI.modal.show(`
+                            <div class="bg-white rounded-xl shadow-float w-full max-w-md overflow-hidden animate-slideUp flex flex-col max-h-[90vh]">
+                                <div class="p-5 border-b border-brand-border flex justify-between bg-slate-50 shrink-0"><h3 class="font-bold">${id ? 'Edit User' : 'Add New User'}</h3><button onclick="App.UI.modal.hide()"><i class="fa-solid fa-times"></i></button></div>
+                                <div class="p-6 space-y-4 overflow-y-auto">
+                                    ${isAdmin ? `<div class="bg-orange-50 border border-brand-orange text-brand-orange p-3 rounded-md text-xs font-bold flex gap-2 items-start mb-2"><i class="fa-solid fa-circle-info mt-0.5"></i> <div>You are editing the primary System Admin account. You can fully customize the Username, Email, and Password below.</div></div>` : ''}
+                                    
+                                    <div><label class="block text-xs font-bold uppercase mb-1">Full Name</label><input type="text" id="u-name" class="input-premium" placeholder="e.g. Rahul Sharma" value="${u.name}" required></div>
+                                    
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div><label class="block text-xs font-bold uppercase mb-1">Username (For Login)</label><input type="text" id="u-username" class="input-premium" placeholder="e.g. rahul123" value="${u.username}" required></div>
+                                        <div><label class="block text-xs font-bold uppercase mb-1">Email</label><input type="email" id="u-email" class="input-premium" placeholder="e.g. rahul@rentova.com" value="${u.email}" required></div>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div><label class="block text-xs font-bold uppercase mb-1">Designation</label><input type="text" id="u-desig" class="input-premium" placeholder="e.g. Accounts Manager" value="${u.designation}" required></div>
+                                        <div><label class="block text-xs font-bold uppercase mb-1">Role (Permissions)</label><select id="u-role" class="input-premium">${rOpts}</select></div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-xs font-bold uppercase mb-1">Set Permanent Password</label>
+                                        <input type="text" id="u-pass" class="input-premium font-mono" placeholder="Enter permanent password" value="${u.password}" required>
+                                        <p class="text-[10px] text-brand-slate mt-1 italic">This exact password will be permanently saved for this user's login.</p>
+                                    </div>
+                                </div>
+                                <div class="p-5 border-t border-brand-border flex justify-end gap-2 bg-slate-50 shrink-0"><button onclick="App.UI.modal.hide()" class="btn-secondary">Cancel</button><button onclick="App.Views.Users.save('${id || ''}')" class="btn-primary">${id ? 'Save Changes' : 'Create User'}</button></div>
+                            </div>
+                        `);
+                    },
+                    save: (id) => {
+                        const em = document.getElementById('u-email').value.toLowerCase();
+                        const un = document.getElementById('u-username').value.toLowerCase();
+                        if(App.State.users.some(x=>x.email.toLowerCase()===em && x.id !== id)) return App.UI.toast('Email already exists.', 'error');
+                        if(App.State.users.some(x=>x.username && x.username.toLowerCase()===un && x.id !== id)) return App.UI.toast('Username already taken.', 'error');
+                        
+                        if (id) {
+                            const u = App.State.users.find(x=>x.id===id);
+                            Object.assign(u, { name: document.getElementById('u-name').value, username: un, email: em, designation: document.getElementById('u-desig').value, roleId: document.getElementById('u-role').value, password: document.getElementById('u-pass').value });
+                            if (App.State.session && App.State.session.id === id) App.State.session = { ...u, status: u.status };
+                            App.UI.toast('User updated successfully.');
+                        } else {
+                            App.State.users.push({ id: 'u_'+Date.now(), name: document.getElementById('u-name').value, username: un, email: em, designation: document.getElementById('u-desig').value, roleId: document.getElementById('u-role').value, password: document.getElementById('u-pass').value, status: 'active' });
+                            App.UI.toast('User created successfully.');
+                        }
+                        App.DB.save(); App.UI.modal.hide(); App.Router.handle();
+                    },
+                    toggle: (id) => {
+                        const u = App.State.users.find(x=>x.id===id); if(u.id === App.State.session.id) return App.UI.toast('Cannot disable self.', 'error');
+                        u.status = u.status === 'active' ? 'disabled' : 'active'; App.DB.save(); App.Router.handle();
+                    }
+                },
+
+                Roles: {
+                    init: () => {
+                        window._activeRole = window._activeRole || App.State.roles[0].id;
+                        document.getElementById('roles-list').innerHTML = App.State.roles.map(r => `
+                            <div onclick="window._activeRole='${r.id}'; App.Views.Roles.init();" class="glass-card p-4 cursor-pointer transition ${window._activeRole === r.id ? 'border-brand-orange bg-orange-50/30' : ''}">
+                                <div class="flex justify-between"><h3 class="font-bold text-sm">${r.name}</h3>${r.type==='system'?'<span class="text-[9px] uppercase font-bold text-brand-slate border rounded px-1">Sys</span>':''}</div>
+                            </div>
+                        `).join('');
+                        const r = App.State.roles.find(x=>x.id===window._activeRole); if(!r) return;
+                        document.getElementById('rv-title').innerText = r.name; document.getElementById('rv-desc').innerText = r.desc;
+                        document.getElementById('rv-matrix').innerHTML = `<thead class="bg-white border-b text-[10px] uppercase font-bold text-brand-slate"><tr><th class="px-5 py-3">Mod</th><th class="text-center py-3">V</th><th class="text-center py-3">C</th><th class="text-center py-3">E</th></tr></thead><tbody class="divide-y">` + 
+                        MODULES.map(m => { const p = r.perms[m] || {}; return `<tr class="hover:bg-slate-50"><td class="px-5 py-3 text-xs font-bold capitalize">${m}</td><td class="text-center">${p.v?'<i class="fa-solid fa-check text-brand-green"></i>':'-'}</td><td class="text-center">${p.c?'<i class="fa-solid fa-check text-brand-green"></i>':'-'}</td><td class="text-center">${p.e?'<i class="fa-solid fa-check text-brand-green"></i>':'-'}</td></tr>`; }).join('') + '</tbody>';
+                        
+                        const actions = document.getElementById('rv-actions');
+                        if(App.Auth.can('roles', 'e')) { actions.classList.remove('hidden'); document.getElementById('btn-del-role').classList.toggle('hidden', r.type==='system'); }
+                        document.getElementById('btn-edit-role').onclick = () => App.Views.Roles.openModal(r);
+                        document.getElementById('btn-del-role').onclick = () => { if(confirm('Delete role?')) { App.State.roles = App.State.roles.filter(x=>x.id!==r.id); window._activeRole=App.State.roles[0].id; App.DB.save(); App.Router.handle(); } };
+                    },
+                    openModal: (role) => {
+                        if(!App.Auth.enforce('roles', role?'e':'c')) return;
+                        const r = role || { name:'', desc:'', perms:{} }; const isNew = !role;
+                        App.UI.modal.show(`
+                            <div class="bg-white rounded-xl shadow-float w-full max-w-2xl flex flex-col max-h-[90vh] animate-slideUp">
+                                <div class="p-5 border-b flex justify-between bg-slate-50"><h3 class="font-bold">${isNew?'Create':'Edit'} Role</h3><button onclick="App.UI.modal.hide()"><i class="fa-solid fa-times"></i></button></div>
+                                <div class="p-5 border-b grid grid-cols-2 gap-4 shrink-0">
+                                    <div><label class="block text-xs font-bold uppercase mb-1">Name</label><input type="text" id="rm-name" class="input-premium" value="${r.name}" ${!isNew && r.type==='system'?'disabled':''}></div>
+                                    <div><label class="block text-xs font-bold uppercase mb-1">Description</label><input type="text" id="rm-desc" class="input-premium" value="${r.desc}"></div>
+                                </div>
+                                <div class="flex-1 overflow-y-auto custom-scrollbar"><table class="w-full text-left text-sm"><thead class="bg-slate-50 border-b sticky top-0 text-[10px] uppercase font-bold text-brand-slate"><tr><th class="px-5 py-3">Mod</th><th class="text-center">V</th><th class="text-center">C</th><th class="text-center">E</th></tr></thead><tbody class="divide-y" id="rm-matrix">
+                                ${MODULES.map(m => { const p = r.perms[m] || {}; return `<tr data-mod="${m}"><td class="px-5 py-3 font-bold text-xs capitalize">${m}</td><td class="text-center"><input type="checkbox" class="accent-brand-orange w-4 h-4" data-act="v" ${p.v?'checked':''}></td><td class="text-center"><input type="checkbox" class="accent-brand-orange w-4 h-4" data-act="c" ${p.c?'checked':''}></td><td class="text-center"><input type="checkbox" class="accent-brand-orange w-4 h-4" data-act="e" ${p.e?'checked':''}></td></tr>`; }).join('')}
+                                </tbody></table></div>
+                                <div class="p-5 border-t flex justify-end gap-3 bg-slate-50 shrink-0"><button onclick="App.UI.modal.hide()" class="btn-secondary">Cancel</button><button onclick="App.Views.Roles.save('${isNew?'':r.id}')" class="btn-primary">Save Role</button></div>
+                            </div>
+                        `);
+                    },
+                    save: (id) => {
+                        const nm = document.getElementById('rm-name').value; if(!nm) return;
+                        const perms = {}; document.querySelectorAll('#rm-matrix tr').forEach(tr => { const m = tr.dataset.mod; perms[m] = { v: tr.querySelector('[data-act="v"]').checked?1:0, c: tr.querySelector('[data-act="c"]').checked?1:0, e: tr.querySelector('[data-act="e"]').checked?1:0 }; });
+                        if(id) { const r = App.State.roles.find(x=>x.id===id); if(r.type!=='system') r.name = nm; r.desc = document.getElementById('rm-desc').value; r.perms = perms; }
+                        else { const nr = { id: 'r_'+Date.now(), name: nm, desc: document.getElementById('rm-desc').value, type: 'custom', perms }; App.State.roles.push(nr); window._activeRole = nr.id; }
+                        App.DB.save(); App.UI.modal.hide(); App.Router.handle();
+                    }
+                },
+
+                Audit: {
+                    init: () => {
+                        const render = () => {
+                            const q = document.getElementById('audit-search').value.toLowerCase();
+                            document.getElementById('audit-tbody').innerHTML = App.State.audit.filter(a=>a.user.toLowerCase().includes(q) || a.action.toLowerCase().includes(q) || a.module.toLowerCase().includes(q)).map(a => `
+                                <tr class="hover:bg-slate-50"><td class="px-5 py-3 text-slate-500">${new Date(a.ts).toLocaleString()}</td><td class="px-5 py-3 font-bold">${a.user}</td><td class="px-5 py-3 font-bold text-brand-orange">${a.action}</td><td class="px-5 py-3 text-slate-600 truncate max-w-[200px]">${a.details}</td></tr>
+                            `).join('');
+                        };
+                        document.getElementById('audit-search').onkeyup = render; render();
+                    }
+                },
+
+                Settings: {
+                    init: () => {
+                        const s = App.State.settings;
+                        document.getElementById('set-comm').value = s.comm; document.getElementById('set-min').value = s.minContrib;
+                        document.getElementById('set-var').value = s.varReserve; document.getElementById('set-maint').value = s.maintReserve;
+                        
+                        const canEdit = App.Auth.can('settings', 'e');
+                        document.querySelectorAll('#settings-form input').forEach(inp => inp.disabled = !canEdit);
+                        document.getElementById('btn-save-settings').classList.toggle('hidden', !canEdit);
+
+                        document.getElementById('btn-save-settings').onclick = () => {
+                            App.State.settings = { comm: parseFloat(document.getElementById('set-comm').value)||20, minContrib: parseFloat(document.getElementById('set-min').value)||0, varReserve: parseFloat(document.getElementById('set-var').value)||0, maintReserve: parseFloat(document.getElementById('set-maint').value)||0 };
+                            App.DB.save(); App.UI.toast('Configuration securely updated.');
+                        };
+                    }
+                },
+
+                Profile: {
+                    init: () => {
+                        const u = App.State.session; document.getElementById('prof-name').innerText = u.name; document.getElementById('prof-role').innerText = u.designation; document.getElementById('prof-email').innerText = u.email; document.getElementById('prof-avatar').innerText = u.name.charAt(0);
+                        document.getElementById('form-password').onsubmit = (e) => {
+                            e.preventDefault(); const n = document.getElementById('cp-new').value; const x = App.State.users.find(y=>y.id===u.id); x.password = n; App.State.session.password = n;
+                            App.DB.save(); e.target.reset(); App.UI.toast('Password updated.');
+                        };
+                    }
+                }
+            }
+        };
+
+        // --- BOOT ---
+        window.addEventListener('hashchange', App.Router.handle);
+        window.onload = () => { App.DB.load(); App.Router.boot(); };
+
+    </script>
+</body>
+</html>
